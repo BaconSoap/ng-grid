@@ -4,6 +4,7 @@ ngGridDirectives.directive('ngInput', [function() {
         link: function (scope, elm, attrs, ngModel) {
             // Store the initial cell value so we can reset to it if need be
             var oldCellValue;
+            var openingSelect2 = false;
             var dereg = scope.$watch('ngModel', function() {
                 oldCellValue = ngModel.$modelValue;
                 dereg(); // only run this watch once, we don't want to overwrite our stored value when the input changes
@@ -44,12 +45,32 @@ ngGridDirectives.directive('ngInput', [function() {
             }); 
 
             scope.$on('ngGridEventStartCellEdit', function () {
+                //if the element is a select2 directive, make sure that it can be used
+                if(elm.select2){
+                	//give select2 a tick to initialize
+                    setTimeout(function(){
+                        elm.select2('focus');
+                        var closeSelect2 = function(){
+                            setTimeout(function(){
+                            	elm.trigger('blur');
+                            },1);
+                        };
+                        //when the select2 blur events fire, trigger a normal blur
+                        elm.on('select2-close select2-blur', closeSelect2);
+                        setTimeout(function(){
+                            openingSelect2=false;
+                        }, 1);
+                    }, 1);
+                    openingSelect2 = true;
+                }
                 elm.focus();
                 elm.select();
             });
 
             angular.element(elm).bind('blur', function () {
-                scope.$emit('ngGridEventEndCellEdit');
+            	if(!openingSelect2) {
+                	scope.$emit('ngGridEventEndCellEdit');
+            	}
             });
         }
     };
